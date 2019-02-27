@@ -4,9 +4,9 @@ from torch.optim import Adam
 import numpy as np
 
 
-from networks import *
-from data import *
-from helpers import *
+from helpers.networks import *
+from helpers.data import *
+from helpers.functions import *
 
 
 def main():
