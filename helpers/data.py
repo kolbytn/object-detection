@@ -11,7 +11,7 @@ def get_points(file):
 
 # Possible features, average x y or z, average reflectivity, max/mins of xyz or reflectivity.
 
-# Accepts an Nx4 numpy array and returns a 4x3x256x256 grid representation of points
+# Accepts an Nx4 numpy array and returns a Yx256x256 grid representation of points where Y is the number of feature channels (different heights, intensity, density etc...)
 def convert_points(points):
 
     vertical_plane_heights = [1.0, 2.0, 3.0]  # height in meters
