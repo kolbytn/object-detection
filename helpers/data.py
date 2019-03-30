@@ -30,20 +30,37 @@ def convert_points(points):
     # test
     # print(points[0])
     # grid2D[0][0][0] = points[0]
-    # np.append(grid2D[0][0], [points[1]], axis=0)
+    # grid2D[0][0] = np.append(grid2D[0][0], [points[1]], axis=0)
     # print(grid2D[0][0])
 
+    # normalize x
+    # points[:, 0] -= min(points[:, 0])
+    # points[:, 0] /= max(points[:, 0])
+    # points[:, 0] *= grid_box_size
+
+    # # normalize y
+    # points[:, 1] -= min(points[:, 1])
+    # points[:, 1] /= max(points[:, 1])
+    # points[:, 1] *= grid_box_size
+
+    min = min(points[:, 0])
+    max = max(points[:, 0])
     for point in points:
+        # TODO: PROCESS DATA
+        data = point
+        # TODO: ***** ..... *****
+
         # around +- 50 * % + center
-        x = math.floor(point[0] * grid_box_side_len_from_meter + 127.5)
+        x = math.floor((point[0] - min)/max * grid_box_size)
         y = math.floor(point[1] * grid_box_side_len_from_meter + 127.5)
         # add point into 2D grid
-        np.append(grid2D[0][0], [point], axis=0)
+        grid2D[x][y] = np.append(grid2D[x][y], [data], axis=0)
 
     # set up each level and calculation the targets
     for x in range(grid_box_size):
         for y in range(grid_box_size):
             points = grid2D[x][y]
+
             # height: level 0, attr: y
             height = 0
             for point in points:
@@ -83,6 +100,7 @@ def test():
     file = "../data/training/subset/000000.bin"
     x = get_points(file)
     y = convert_points(x)
+    # print(y)
 
     print("done")
 
