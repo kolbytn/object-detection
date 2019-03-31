@@ -16,7 +16,6 @@ def convert_points(points):
     vertical_plane_heights = [1.0, 2.0, 3.0]  # height in meters
     grid_box_size = 256 # array length
     grid_side_len = 100 # meters
-    grid_box_side_len_from_meter = grid_box_size / grid_side_len
 
     # set up 3d array
     grid = np.zeros((len(vertical_plane_heights), grid_box_size, grid_box_size), dtype=np.ndarray)
@@ -27,38 +26,37 @@ def convert_points(points):
         for y in range(grid_box_size):
             grid2D[x][y] = np.zeros((1, 4), dtype=np.ndarray)
 
-    # test
-    # print(points[0])
-    # grid2D[0][0][0] = points[0]
-    # np.append(grid2D[0][0], [points[1]], axis=0)
-    # print(grid2D[0][0])
-
     for point in points:
-        # around +- 50 * % + center
-        x = math.floor(point[0] * grid_box_side_len_from_meter + 127.5)
-        y = math.floor(point[1] * grid_box_side_len_from_meter + 127.5)
+        # ignore when value greater than +-50
+        if (abs(point[0]) > 50 or abs(point[1]) > 50): continue
+        # value boundary: +- 50
+        # (point(x or y) +50)/100 * (256 - 1)
+        tempX = math.floor((point[0] + grid_side_len/2) / grid_side_len * (grid_box_size - 1))
+        tempY = math.floor((point[2] + grid_side_len/2) / grid_side_len * (grid_box_size - 1))
+        x = min(tempX, 255)
+        y = min(tempY, 255)
         # add point into 2D grid
-        np.append(grid2D[0][0], [point], axis=0)
+        grid2D[x][y] = np.append(grid2D[x][y], [point], axis=0)
 
     # set up each level and calculation the targets
     for x in range(grid_box_size):
         for y in range(grid_box_size):
             points = grid2D[x][y]
-            # height: level 0, attr: y
+            # height: level 1, attr: z
             height = 0
             for point in points:
-                height += point[1]
+                height += point[2]
             height /= len(points)
             grid[0][x][y] = height
 
-            # intensity: level 1, attr: reflectivity
+            # intensity: level 2, attr: reflectivity
             intensity = 0
             for point in points:
                 intensity += point[3]
             intensity /= len(points)
             grid[1][x][y] = intensity
 
-            # density: level 2, attr: xy
+            # density: level 3, attr: number points in square
             density = 0
             density = len(points)
             grid[2][x][y] = density
