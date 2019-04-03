@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 import numpy as np
 from tqdm import tqdm
 
-
-from helpers.networks import *
+from helpers.layers.modules import MultiBoxLoss
+from helpers.ssd import *
 from helpers.data import *
 from helpers.functions import *
 
@@ -28,8 +28,9 @@ def main():
     loader_test = DataLoader(data_test, batch_size=batch_size, shuffle=True)
 
     # Create model
-    model = ObjectNetwork().to(device)
-    objective = nn.CrossEntropyLoss()
+    cfg = kitti
+    model = build_ssd('train', cfg['min_dim'], cfg['num_classes']).to(device)
+    criterion = MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True, 3, 0.5, False, args.cuda)
     optimizer = Adam(model.parameters(), lr=lr)
 
     # Loop data for n epochs
@@ -47,7 +48,8 @@ def main():
             pred = model(inp)
 
             # Calculate loss
-            loss = objective(out, pred)
+            loss_1, loss_c = criterion(out, pred)
+            loss = loss_l + loss_c
 
             # Comput gradients and take step
             loss.backward()
