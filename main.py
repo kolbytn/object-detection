@@ -20,7 +20,7 @@ def main():
     batch_size = 128
     training_path = "data/training/subset"
     testing_path = None
-    device = 'cuda'
+    device = 'cpu'
     lr = 1e-3
 
     # Load data

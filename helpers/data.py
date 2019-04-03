@@ -3,10 +3,30 @@ import os
 import numpy as np
 import math
 
+'''
+Inputs: list of points, x, y, z, and reflectivity
+Targets: list of
+    Object: 'Car', 'Van', 'Truck', 'Pedestrian', 'Person_sitting', 'Cyclist', 'Tram', 'Misc' or 'DontCare'
+    Truncated: Whether object leaves boundaries (0-1)
+    Visibility: 0 = fully visible, 1 = partly occluded, 2 = largely occluded, 3 = unknown
+    Angle: observation angle of object, ranging [-pi..pi]
+    BBox-Left
+    BBox-Top
+    BBox-Right
+    BBox-Bottom
+    Height
+    Width
+    Length
+    X-Location
+    Y-Location
+    Z-Location
+    Y-Rotation [-pi..pi]
+'''
+
 
 # TODO These need to be set to correct values
 kitti = {
-    'num_classes': 201,
+    'num_classes': 9,
     'lr_steps': (280000, 360000, 400000),
     'max_iter': 400000,
     'feature_maps': [38, 19, 10, 5, 3, 1],
@@ -18,6 +38,19 @@ kitti = {
     'variance': [0.1, 0.2],
     'clip': True,
     'name': 'KITTI'
+}
+
+
+object_classes = {
+    'Car': 0,
+    'Van': 1,
+    'Truck': 2,
+    'Pedestrian': 3,
+    'Person_sitting': 4,
+    'Cyclist': 5,
+    'Tram': 6,
+    'Misc': 7,
+    'DontCare': 8
 }
 
 
@@ -80,6 +113,23 @@ def convert_points(points):
             grid[2][x][y] = density
 
     return grid
+
+
+def get_boxes(file_path):
+    # Get objects
+    with open(file_path, mode='r') as file:
+        objects_str = file.readlines()
+
+        objects = []
+        for object_str in objects_str:
+            items = object_str.split(' ')
+            items[0] = object_classes[items[0]]
+            items = [float(x) for x in items]
+            object = [items[11], items[12], items[11] + items[9], items[12] + items[10], items[0]]
+            objects.append(object)
+
+    # Returns [[xmin, ymin, xmax, ymax, label_idx], ... ]
+    return objects
 
 
 class ObjectDataset(Dataset):
