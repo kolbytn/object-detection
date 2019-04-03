@@ -17,7 +17,7 @@ kitti = {
     'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
     'variance': [0.1, 0.2],
     'clip': True,
-    'name': 'COCO',
+    'name': 'KITTI'
 }
 
 
@@ -32,8 +32,8 @@ def get_points(file):
 def convert_points(points):
 
     vertical_plane_heights = [1.0, 2.0, 3.0]  # height in meters
-    grid_box_size = 256 # array length
-    grid_side_len = 100 # meters
+    grid_box_size = 300  # array length
+    grid_side_len = 100  # meters
 
     # set up 3d array
     grid = np.zeros((len(vertical_plane_heights), grid_box_size, grid_box_size), dtype=np.ndarray)
@@ -83,16 +83,16 @@ def convert_points(points):
 
 
 class ObjectDataset(Dataset):
-    def __init__(self):
+    def __init__(self, inputs, targets):
         super(ObjectDataset, self).__init__()
-        self.inputs
-
+        self.inputs = inputs
+        self.targets = targets
 
     def __len__(self):
         return len(self.inputs)
 
     def __getitem__(self, index):
-        return self.inputs[index], self.outputs[index]
+        return self.inputs[index], self.targets[index]
 
 
 def test():

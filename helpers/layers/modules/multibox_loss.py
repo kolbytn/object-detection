@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from data import coco as cfg
+from helpers.data import kitti as cfg
 from ..box_utils import match, log_sum_exp
 
 
@@ -32,9 +32,9 @@ class MultiBoxLoss(nn.Module):
 
     def __init__(self, num_classes, overlap_thresh, prior_for_matching,
                  bkg_label, neg_mining, neg_pos, neg_overlap, encode_target,
-                 use_gpu=True):
+                 device='cpu'):
         super(MultiBoxLoss, self).__init__()
-        self.use_gpu = use_gpu
+        self.use_gpu = device == 'cuda'
         self.num_classes = num_classes
         self.threshold = overlap_thresh
         self.background_label = bkg_label
