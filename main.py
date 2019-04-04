@@ -17,18 +17,20 @@ def main():
     '''
     # Set hyperparameters
     epochs = 100
-    batch_size = 128
+    batch_size = 16
     training_path = "data/training/subset"
     testing_path = None
-    device = 'cpu'
-    lr = 1e-3
+    device = 'cuda'
+    lr = 1e-5
 
     # Load data
-    data_train, data_test = load_data(training_path, testing_path=testing_path, max_data=1)
-    loader_train = DataLoader(data_train, batch_size=batch_size, shuffle=True)
+    data_train, data_test = load_data(training_path, testing_path=testing_path, max_data=None)
+    loader_train = DataLoader(data_train, batch_size=batch_size, shuffle=True, pin_memory=True,
+                              collate_fn=detection_collate)
     loader_test = None
     if data_test:
-        loader_test = DataLoader(data_test, batch_size=batch_size, shuffle=True)
+        loader_test = DataLoader(data_test, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                 collate_fn=detection_collate)
 
     # Create model
     cfg = kitti
@@ -37,12 +39,13 @@ def main():
     optimizer = Adam(model.parameters(), lr=lr)
 
     # Loop data for n epochs
-    loop = tqdm(total=epochs * len(loader_train), position=0, leave=False)
+    #loop = tqdm(total=epochs * len(loader_train), position=0, leave=False)
     losses = []
     for epoch in range(epochs):
+        epoch_losses = 0.0
         for batch, data in enumerate(loader_train):
             # Get batch input and outputs
-            inp, tar = data[0].to(device).float(), data[1].to(device).float()
+            inp, tar = data[0].to(device).float(), data[1]
 
             # Zero gradients
             optimizer.zero_grad()
@@ -53,6 +56,7 @@ def main():
             # Calculate loss
             loss_l, loss_c = criterion(pred, tar)
             loss = loss_l + loss_c
+            epoch_losses += loss.item()
 
             # Compute gradients and take step
             loss.backward()
@@ -60,10 +64,8 @@ def main():
 
             # Log
             losses.append(loss.item())
-            loop.update(1)
-            loop.set_description('epoch:{}, batch:{}, loss:{:.4f}'
-                                 .format(epoch, batch, loss.item()))
-        print()
+
+        print('epoch:{}, loss:{:.4f}'.format(epoch,  epoch_losses))
 
     # Plot results
     plot_results(losses)

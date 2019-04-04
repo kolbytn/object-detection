@@ -72,10 +72,11 @@ def convert_points(points):
     grid = np.zeros((len(vertical_plane_heights), grid_box_size, grid_box_size), dtype=np.ndarray)
     # grid = np.array((len(vertical_plane_heights), grid_box_size, grid_box_size), dtype=np.ndarray)
 
-    grid2D = np.zeros((grid_box_size, grid_box_size), dtype=np.ndarray)
+    grid2D = []
     for x in range(grid_box_size):
+        grid2D.append([])
         for y in range(grid_box_size):
-            grid2D[x][y] = np.zeros((1, 4), dtype=np.ndarray)
+            grid2D[x].append([])
 
     for point in points:
         # ignore when value greater than +-50
@@ -87,7 +88,7 @@ def convert_points(points):
         x = min(tempX, 255)
         y = min(tempY, 255)
         # add point into 2D grid
-        grid2D[x][y] = np.append(grid2D[x][y], [point], axis=0)
+        grid2D[x][y].append(point)
 
     # set up each level and calculation the targets
     for x in range(grid_box_size):
@@ -97,14 +98,16 @@ def convert_points(points):
             height = 0
             for point in points:
                 height += point[2]
-            height /= len(points)
+            if(len(points) != 0):
+                height /= len(points)
             grid[0][x][y] = height
 
             # intensity: level 2, attr: reflectivity
             intensity = 0
             for point in points:
                 intensity += point[3]
-            intensity /= len(points)
+            if (len(points) != 0):
+                intensity /= len(points)
             grid[1][x][y] = intensity
 
             # density: level 3, attr: number points in square
@@ -124,9 +127,11 @@ def get_boxes(file_path):
         for object_str in objects_str:
             items = object_str.split(' ')
             items[0] = object_classes[items[0]]
+            if items[0] == 8:
+                continue
             items = [float(x) for x in items]
-            object = [items[11], items[12], items[11] + items[9], items[12] + items[10], items[0]]
-            objects.append(object)
+            obj = [items[11], items[12], items[11] + items[9], items[12] + items[10], items[0] - 1]
+            objects.append(obj)
 
     # Returns [[xmin, ymin, xmax, ymax, label_idx], ... ]
     return objects
@@ -146,7 +151,7 @@ class ObjectDataset(Dataset):
 
 
 def test():
-    file = "../data/training/subset/000000.bin"
+    file = "../data/training/subset/input/000000.bin"
     x = get_points(file)
     y = convert_points(x)
 
