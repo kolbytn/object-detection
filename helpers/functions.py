@@ -7,7 +7,7 @@ import mayavi.mlab
 from helpers.data import *
 
 
-def plot_loss(train_losses, test_losses):
+def plot_loss(train_losses, test_losses, e):
     plt.clf()
     plt.plot(train_losses, label='Training Loss')
     plt.plot(test_losses, label='Testing Loss')
