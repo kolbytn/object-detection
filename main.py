@@ -16,15 +16,15 @@ def main():
     Get and preprocess data. Train model. Display output.
     '''
     # Set hyperparameters
-    epochs = 100
-    batch_size = 16
-    training_path = "data/training/subset"
+    epochs = 10000
+    batch_size = 32
+    training_path = "data/training/full"
     testing_path = None
     device = 'cuda'
-    lr = 1e-5
+    lr = 1e-4
 
     # Load data
-    data_train, data_test = load_data(training_path, testing_path=testing_path, max_data=None)
+    data_train, data_test = load_data(training_path, testing_path=testing_path, max_data=1000)
     loader_train = DataLoader(data_train, batch_size=batch_size, shuffle=True, pin_memory=True,
                               collate_fn=detection_collate)
     loader_test = None
@@ -62,8 +62,7 @@ def main():
             loss.backward()
             optimizer.step()
 
-            # Log
-            losses.append(loss.item())
+        losses.append(epoch_losses)
 
         print('epoch:{}, loss:{:.4f}'.format(epoch,  epoch_losses))
 
