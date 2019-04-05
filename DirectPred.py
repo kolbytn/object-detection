@@ -52,23 +52,34 @@ class AutoEncoder(nn.Module):
 
         self.encoder = nn.Sequential(
             DownConvLayer(3, 16),
+            nn.BatchNorm2d(16),
             DownConvLayer(16, 32),
+            nn.BatchNorm2d(32),
             DownConvLayer(32, 64),
-            DownConvLayer(64, 128))
+            nn.BatchNorm2d(64),
+            DownConvLayer(64, 128),
+            nn.BatchNorm2d(128)
+        )
 
         self.decoder = nn.Sequential(
             UpConvLayer(128, 64),
+            nn.BatchNorm2d(64),
             UpConvLayer(64, 32),
+            nn.BatchNorm2d(32),
             UpConvLayer(32, 16),
+            nn.BatchNorm2d(16),
             UpConvLayer(16, 9, activation=nn.Sigmoid)
         )
 
         self.encode_fc = nn.Linear(128*16*16, 128)
         self.decode_fc = nn.Linear(128, 128*16*16)
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
         z = self.encode(x)
-        return self.decode(z)
+        z = self.dropout(z)
+        out = self.decode(z)
+        return out
 
     def encode(self, x):
         x = self.encoder(x)
@@ -82,38 +93,44 @@ class AutoEncoder(nn.Module):
         return z
 
 
-def train(model, train_loader, optimizer, loss_func, display=False):
+def train(model, train_loader, optimizer, loss_func, e, display=False, device='cuda', vis_data=None):
     model.train()
     num = 0
     total_loss = 0
 
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to("cuda"), target.to("cuda")
+        data, target = data.to(device), target.to(device)
         target = target
         data = data
         optimizer.zero_grad()
         output = model(data)
         num += target.shape[0]
         loss = loss_func(output, target)
-        total_loss += loss
+        total_loss += loss.item()
         loss.backward()
         optimizer.step()
 
         if display:
             display_imgs(target[0], output[0], data[0])
 
-    return total_loss.item()/num
+    if vis_data is not None and e % 10 == 0:
+        model.eval()
+        with torch.no_grad():
+            output = model(vis_data[0].unsqueeze(0).to(device))
+            display_imgs(vis_data[1], output[0], vis_data[0], e + 1000)
+
+    return total_loss/num
 
 viz_thresh = 0.4
-def display_imgs(array0, array1, data):
-    img2 = data.detach().cpu().numpy()
+def display_imgs(array0, array1, data, e):
+    img2 = data.detach().cpu().clone().numpy()
 
-    array0 = array0.detach().cpu().numpy()
-    array0[array0 < viz_thresh] = 0
-    array0[array0 >= viz_thresh] = 1
-    array1 = array1.detach().cpu().numpy()
-    array1[array1 < viz_thresh] = 0
-    array1[array1 >= viz_thresh] = 1
+    array0 = array0.detach().cpu().clone().numpy()
+    # array0[array0 < viz_thresh] = 0
+    # array0[array0 >= viz_thresh] = 1
+    array1 = array1.detach().cpu().clone().numpy()
+    # array1[array1 < viz_thresh] = 0
+    # array1[array1 >= viz_thresh] = 1
 
     img0 = array0[0]
     for i in range(1, 9):
@@ -123,52 +140,69 @@ def display_imgs(array0, array1, data):
     for i in range(1, 9):
         img1 += (array1[i] * (i+1))
 
+    plt.clf()
     f, axarr = plt.subplots(2, 2)
     axarr[0,0].imshow(img0, cmap='jet',vmin=0,vmax=10)
     axarr[0,1].imshow(img1, cmap='jet',vmin=0,vmax=10)
     axarr[1,0].imshow(img2[2], cmap='jet')
     axarr[1,1].imshow(img2[0], cmap='jet')
 
-    plt.show()
+    f.savefig('images/' + str(e) + '.png')
 
 
-def test(model, test_loader, loss_func, display=False):
+def test(model, test_loader, loss_func, e, device='cuda', vis_data=None):
     model.eval()
     total_loss = 0
     num = 0
     with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to("cuda"), target.to("cuda")
+        for batch, (data, target) in enumerate(test_loader):
+            data, target = data.to(device), target.to(device)
             output = model(data)
-            total_loss += loss_func(output, data)
-            num += output.shape[0]
+            total_loss += loss_func(output, target).item()
+            num += target.shape[0]
 
-        return total_loss.item()/num
+        if vis_data is not None:
+            output = model(vis_data[0].unsqueeze(0).to(device))
+            display_imgs(vis_data[1], output[0], vis_data[0], e)
+
+        return total_loss/num
 
 
 def main():
-    epochs = 1000
-    batch_size = 8
+    epochs = 1001
+    batch_size = 32
+    test_freq = 2
+    plot_freq = 50
     training_path = "data/training/full"
-    testing_path = None
+    testing_path = "data/testing"
     device = 'cuda'
-    lr = 5e-4
+    lr = 1e-3
     display = False
 
-    model = AutoEncoder().cuda()
+    model = AutoEncoder().to(device)
 
     # Load data
     data_train, data_test = load_data(training_path, testing_path=testing_path, max_data=64)
+    vis_data = data_train[10]
+    vis_data_test = data_test[49]
     loader_train = DataLoader(data_train, batch_size=batch_size, shuffle=True, pin_memory=True)
+    loader_test = DataLoader(data_test, batch_size=batch_size, shuffle=True, pin_memory=True)
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_func = nn.BCELoss()
 
+    test_loss = 0
+    train_losses = []
+    test_losses = []
     for e in range(epochs):
-        if e % 50 == 0 and e >= 0:
-            display= True
-        loss = train(model, loader_train, optimizer, loss_func, display=display)
-        print("Epoch: ", e, " Train Loss: ", loss)
+        loss = train(model, loader_train, optimizer, loss_func, e, display=display, device=device, vis_data=vis_data)
+        if e % test_freq == 0:
+            test_loss = test(model, loader_test, loss_func, e, device=device, vis_data=vis_data_test)
+        if e % plot_freq == 0:
+            plot_loss(train_losses, test_losses, e)
+        train_losses.append(loss)
+        test_losses.append(test_loss)
+        print("Epoch:", e, " Train Loss:", loss, "Test Loss:", test_loss)
 
 
 if __name__ == '__main__':

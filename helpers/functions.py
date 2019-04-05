@@ -7,9 +7,16 @@ import mayavi.mlab
 from helpers.data import *
 
 
-def plot_results(data):
-    plt.plot(data)
-    plt.show()
+def plot_loss(train_losses, test_losses):
+    plt.clf()
+    plt.plot(train_losses, label='Training Loss')
+    plt.plot(test_losses, label='Testing Loss')
+    plt.legend(loc=1)
+    plt.title('BCE Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.yscale('log')
+    plt.savefig('images/loss_' + str(e) + '.png')
 
 
 def load_data(training_path, testing_path=None, max_data=None):
@@ -38,8 +45,8 @@ def load_data(training_path, testing_path=None, max_data=None):
 
 
 def process_data(path, max_data):
-    saved_input_dir = 'saved/oldinput.npy'
-    saved_target_dir = 'saved/oldtarget.npy'
+    saved_input_dir = 'saved/input.npy'
+    saved_target_dir = 'saved/target.npy'
 
     # Load training data
     inputs = []
