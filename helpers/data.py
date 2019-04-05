@@ -84,7 +84,7 @@ def convert_points(points):
         # value boundary: +- 50
         # (point(x or y) +50)/100 * (256 - 1)
         tempX = math.floor((point[0] + grid_side_len/2) / grid_side_len * (grid_box_size - 1))
-        tempY = math.floor((point[2] + grid_side_len/2) / grid_side_len * (grid_box_size - 1))
+        tempY = math.floor((point[1] + grid_side_len/2) / grid_side_len * (grid_box_size - 1))
         x = min(tempX, 255)
         y = min(tempY, 255)
         # add point into 2D grid
